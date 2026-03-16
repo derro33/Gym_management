@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
 
 class  SignupScreen extends StatefulWidget {
   const  SignupScreen({super.key});
@@ -140,7 +142,13 @@ class _SignupScreenState extends State< SignupScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text("Already have an account? "),
-                  Text("Login", style: TextStyle(color: Colors.amber)),
+                  GestureDetector(
+                    onTap: () {
+                      Get.back();
+                    },
+                    child: Text("Login", style: TextStyle(color: Colors.amber)),
+                  ),
+                
                 ],
               ),
             ],

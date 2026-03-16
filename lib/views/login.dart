@@ -85,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   hintText: "Pin or Password",
-                  prefixIcon: Icon(Icons.person),
+                  prefixIcon: Icon(Icons.lock),
                   suffixIcon: Icon(Icons.visibility_off),
                 ),
               ),
