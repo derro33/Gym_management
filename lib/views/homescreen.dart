@@ -49,10 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ─────────────────────────────────────────────
-// DASHBOARD PAGE
-// ─────────────────────────────────────────────
-
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -61,7 +57,6 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  // Hardcoded data — will be replaced with API later
   final String userName = "John Doe";
   final int totalBookings = 5;
 
@@ -108,7 +103,6 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ──────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -135,7 +129,6 @@ class _DashboardPageState extends State<DashboardPage> {
                     radius: 28,
                     backgroundColor: Colors.blueAccent,
                     child: Text(
-                      // Shows initials from name
                       userName
                           .trim()
                           .split(" ")
@@ -154,8 +147,6 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
 
               const SizedBox(height: 20),
-
-              // ── Total Bookings Card ──────────────────────────
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -197,8 +188,6 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
 
               const SizedBox(height: 20),
-
-              // ── Upcoming Booking ─────────────────────────────
               const Text(
                 "Upcoming Booking",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -284,8 +273,6 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
 
               const SizedBox(height: 20),
-
-              // ── Available Slots Summary ──────────────────────
               const Text(
                 "Available Slots",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -344,8 +331,6 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
 
               const SizedBox(height: 20),
-
-              // ── Quick Tips ───────────────────────────────────
               const Text(
                 "Quick Tips",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

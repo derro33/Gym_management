@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:flutter_application_1/controllers/user_controller.dart';
+import 'package:flutter_application_1/services/api_service.dart';
 
 class MyBookings extends StatefulWidget {
   const MyBookings({super.key});
@@ -8,58 +11,43 @@ class MyBookings extends StatefulWidget {
 }
 
 class _MyBookingsState extends State<MyBookings> {
-  // Hardcoded data — will be replaced with API later
-  List<Map<String, dynamic>> bookings = [
-    {
-      "slot": "Morning Session",
-      "date": "Mon, Apr 07 2026",
-      "time": "6:00 AM – 8:00 AM",
-      "status": "completed",
-    },
-    {
-      "slot": "Evening Session",
-      "date": "Tue, Apr 08 2026",
-      "time": "5:00 PM – 7:00 PM",
-      "status": "booked",
-    },
-    {
-      "slot": "Midday Session",
-      "date": "Wed, Apr 09 2026",
-      "time": "11:00 AM – 1:00 PM",
-      "status": "booked",
-    },
-    {
-      "slot": "Weekend Morning",
-      "date": "Sat, Apr 12 2026",
-      "time": "8:00 AM – 10:00 AM",
-      "status": "cancelled",
-    },
-    {
-      "slot": "Evening Session",
-      "date": "Mon, Apr 14 2026",
-      "time": "5:00 PM – 7:00 PM",
-      "status": "booked",
-    },
-  ];
-
-  // Currently selected filter tab
+  List<dynamic> bookings = [];
+  bool _isLoading = true;
   String _selectedFilter = "All";
   final List<String> _filters = ["All", "Booked", "Completed", "Cancelled"];
 
-  // Returns filtered list based on selected tab
-  List<Map<String, dynamic>> get _filteredBookings {
-    if (_selectedFilter == "All") return bookings;
-    return bookings
-        .where(
-          (b) =>
-              b["status"].toString().toLowerCase() ==
-              _selectedFilter.toLowerCase(),
-        )
-        .toList();
+  // Get real logged-in user id from session
+  final userController = Get.find<UserController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookings();
   }
 
-  // Cancel a booking
-  void _cancelBooking(int actualIndex) {
+  void _loadBookings() async {
+    setState(() => _isLoading = true);
+
+    final result = await ApiService.getBookings(userController.userId);
+
+    if (result['success']) {
+      setState(() {
+        bookings = result['bookings'];
+        _isLoading = false;
+      });
+    } else {
+      setState(() => _isLoading = false);
+      Get.snackbar(
+        "Error",
+        result['message'],
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  void _cancelBooking(int bookingId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -70,40 +58,77 @@ class _MyBookingsState extends State<MyBookings> {
         ),
         content: const Text("Are you sure you want to cancel this booking?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("No", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onPressed: () {
-              setState(() {
-                bookings[actualIndex]["status"] = "cancelled";
-              });
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Booking cancelled successfully"),
-                  backgroundColor: Colors.red,
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("No", style: TextStyle(color: Colors.grey)),
                 ),
-              );
-            },
-            child: const Text(
-              "Yes, Cancel",
-              style: TextStyle(color: Colors.white),
-            ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    final result = await ApiService.cancelBooking(
+                      bookingId: bookingId,
+                      userId: userController.userId,
+                    );
+                    if (result['success']) {
+                      _loadBookings();
+                      Get.snackbar(
+                        "Cancelled",
+                        "Booking cancelled successfully",
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.red,
+                        colorText: Colors.white,
+                      );
+                    } else {
+                      Get.snackbar(
+                        "Error",
+                        result['message'],
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.red,
+                        colorText: Colors.white,
+                      );
+                    }
+                  },
+                  child: const Text(
+                    "Yes, Cancel",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // Status color
+  List<dynamic> get _filteredBookings {
+    if (_selectedFilter == "All") return bookings;
+    return bookings
+        .where(
+          (b) =>
+              b["status"].toString().toLowerCase() ==
+              _selectedFilter.toLowerCase(),
+        )
+        .toList();
+  }
+
   Color _statusColor(String status) {
     switch (status) {
       case "booked":
@@ -117,7 +142,6 @@ class _MyBookingsState extends State<MyBookings> {
     }
   }
 
-  // Status icon
   IconData _statusIcon(String status) {
     switch (status) {
       case "booked":
@@ -143,7 +167,6 @@ class _MyBookingsState extends State<MyBookings> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ─────────────────────────────────────
               const Text(
                 "My Bookings",
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
@@ -152,10 +175,9 @@ class _MyBookingsState extends State<MyBookings> {
                 "Track and manage your gym sessions",
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
-
               const SizedBox(height: 16),
 
-              // ── Summary Row ────────────────────────────────
+              // Summary Row
               Row(
                 children: [
                   _summaryCard(
@@ -199,7 +221,7 @@ class _MyBookingsState extends State<MyBookings> {
 
               const SizedBox(height: 16),
 
-              // ── Filter Tabs ────────────────────────────────
+              // Filter Tabs
               SizedBox(
                 height: 38,
                 child: ListView.separated(
@@ -241,9 +263,11 @@ class _MyBookingsState extends State<MyBookings> {
 
               const SizedBox(height: 16),
 
-              // ── Bookings List ──────────────────────────────
+              // Bookings List
               Expanded(
-                child: filtered.isEmpty
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : filtered.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -264,134 +288,129 @@ class _MyBookingsState extends State<MyBookings> {
                           ],
                         ),
                       )
-                    : ListView.builder(
-                        itemCount: filtered.length,
-                        itemBuilder: (context, index) {
-                          final booking = filtered[index];
-                          final String status = booking["status"];
+                    : RefreshIndicator(
+                        onRefresh: () async => _loadBookings(),
+                        child: ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) {
+                            final booking = filtered[index];
+                            final String status = booking["status"];
+                            final int bookingId = int.parse(
+                              booking["id"].toString(),
+                            );
 
-                          // Get actual index in main bookings list
-                          // so cancel works correctly
-                          final int actualIndex = bookings.indexOf(booking);
-
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 14),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.shade200,
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  // Status icon circle
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: _statusColor(
-                                        status,
-                                      ).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      _statusIcon(status),
-                                      color: _statusColor(status),
-                                      size: 26,
-                                    ),
-                                  ),
-
-                                  const SizedBox(width: 14),
-
-                                  // Booking details
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          booking["slot"],
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 15,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          booking["date"],
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                        Text(
-                                          booking["time"],
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  // Status badge + cancel button
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: _statusColor(
-                                            status,
-                                          ).withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          status[0].toUpperCase() +
-                                              status.substring(1),
-                                          style: TextStyle(
-                                            color: _statusColor(status),
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-
-                                      // Show cancel only for booked
-                                      if (status == "booked") ...[
-                                        const SizedBox(height: 8),
-                                        GestureDetector(
-                                          onTap: () =>
-                                              _cancelBooking(actualIndex),
-                                          child: const Text(
-                                            "Cancel",
-                                            style: TextStyle(
-                                              color: Colors.red,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.shade200,
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
                                   ),
                                 ],
                               ),
-                            ),
-                          );
-                        },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: _statusColor(
+                                          status,
+                                        ).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        _statusIcon(status),
+                                        color: _statusColor(status),
+                                        size: 26,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            booking["slot_name"],
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            booking["booking_date"],
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                          Text(
+                                            "${booking["start_time"]} – ${booking["end_time"]}",
+                                            style: TextStyle(
+                                              color: Colors.grey.shade600,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: _statusColor(
+                                              status,
+                                            ).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            status[0].toUpperCase() +
+                                                status.substring(1),
+                                            style: TextStyle(
+                                              color: _statusColor(status),
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                        if (status == "booked") ...[
+                                          const SizedBox(height: 8),
+                                          GestureDetector(
+                                            onTap: () =>
+                                                _cancelBooking(bookingId),
+                                            child: const Text(
+                                              "Cancel",
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
               ),
             ],
@@ -401,7 +420,6 @@ class _MyBookingsState extends State<MyBookings> {
     );
   }
 
-  // ── Summary Card Widget ──────────────────────────────────────
   Widget _summaryCard(String label, String count, Color color, IconData icon) {
     return Expanded(
       child: Container(

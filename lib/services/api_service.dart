@@ -2,10 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  // 👇 Replace with YOUR actual IP address from ipconfig
-  static const String baseUrl = "http://localhost/gym_api/api";
+  static const String baseUrl = "http://127.0.0.1/gym_api/api";
 
-  // ── Auth ──────────────────────────────────────────────────────
   static Future<Map<String, dynamic>> login(
     String email,
     String password,
@@ -46,7 +44,17 @@ class ApiService {
     }
   }
 
-  // ── Slots ─────────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> getProfile(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/user/profile.php?user_id=$userId"),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": "Could not connect to server"};
+    }
+  }
+
   static Future<Map<String, dynamic>> getSlots() async {
     try {
       final response = await http.get(Uri.parse("$baseUrl/slots/get_all.php"));
@@ -77,7 +85,6 @@ class ApiService {
     }
   }
 
-  // ── Bookings ──────────────────────────────────────────────────
   static Future<Map<String, dynamic>> getBookings(int userId) async {
     try {
       final response = await http.get(
@@ -105,7 +112,6 @@ class ApiService {
     }
   }
 
-  // ── Attendance ────────────────────────────────────────────────
   static Future<Map<String, dynamic>> getAttendance(int userId) async {
     try {
       final response = await http.get(

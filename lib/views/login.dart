@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
+import 'package:get/get.dart';
+import 'package:flutter_application_1/controllers/user_controller.dart';
+import 'package:flutter_application_1/services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,13 +12,12 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
-  // 👇 Add these
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // 👇 Dispose controllers when screen is destroyed
   @override
   void dispose() {
     _usernameController.dispose();
@@ -25,7 +25,6 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // 👇 Validation logic
   String? _validateUsername(String? value) {
     if (value == null || value.trim().isEmpty) {
       return "Username is required";
@@ -48,10 +47,45 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  void _handleLogin() {
+  void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      // All fields valid — proceed to home
-      Get.toNamed("/homescreen");
+      setState(() => _isLoading = true);
+
+      try {
+        final result = await ApiService.login(
+          _usernameController.text.trim(),
+          _passwordController.text.trim(),
+        );
+
+        setState(() => _isLoading = false);
+
+        if (result['success'] == true) {
+          // Save the logged-in user's data to device storage
+          final userController = Get.find<UserController>();
+          userController.saveUser(result['user']);
+
+          Get.offAllNamed("/homescreen");
+        } else {
+          Get.snackbar(
+            "Login Failed",
+            result['message'] ?? "Invalid credentials",
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            icon: const Icon(Icons.error, color: Colors.white),
+          );
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+        Get.snackbar(
+          "Error",
+          "Could not connect to server. Check your connection.",
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          icon: const Icon(Icons.error, color: Colors.white),
+        );
+      }
     }
   }
 
@@ -62,21 +96,20 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.all(15.0),
         child: SingleChildScrollView(
           child: Form(
-            // 👈 Wrap with Form widget
             key: _formKey,
             child: Column(
               children: [
-                Image.asset("assets/login.png", height: 200, width: 200),
-                Text(
+                Image.asset("assets/image.png", height: 200, width: 200),
+                const Text(
                   "Login Screen",
                   style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
                 ),
-                SizedBox(height: 30),
+                const SizedBox(height: 30),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
+                    children: const [
                       Text(
                         "Enter Username",
                         style: TextStyle(
@@ -87,8 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-                SizedBox(height: 10),
-                // 👇 Changed TextField to TextFormField
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _usernameController,
                   validator: _validateUsername,
@@ -98,15 +130,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     hintText: "Use email or phone number",
-                    prefixIcon: Icon(Icons.person),
+                    prefixIcon: const Icon(Icons.person),
                   ),
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 30),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
+                    children: const [
                       Text(
                         "Enter password",
                         style: TextStyle(
@@ -117,8 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                 ),
-                SizedBox(height: 10),
-                // 👇 Changed TextField to TextFormField
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _passwordController,
                   validator: _validatePassword,
@@ -128,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     hintText: "Pin or Password",
-                    prefixIcon: Icon(Icons.lock),
+                    prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _isPasswordVisible
@@ -143,43 +174,53 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 20),
-                // 👇 Call _handleLogin instead of Get.toNamed directly
+                const SizedBox(height: 20),
                 GestureDetector(
-                  onTap: _handleLogin,
+                  onTap: _isLoading ? null : _handleLogin,
                   child: Container(
                     height: 50,
                     width: double.infinity,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 238, 142, 8),
+                      color: _isLoading
+                          ? Colors.orange.shade200
+                          : const Color.fromARGB(255, 238, 142, 8),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(
-                      "Login",
-                      style: TextStyle(color: Colors.white, fontSize: 16),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Text(
+                            "Login",
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
                     children: [
-                      Text("Don't have an account?"),
-                      SizedBox(width: 5),
+                      const Text("Don't have an account?"),
+                      const SizedBox(width: 5),
                       GestureDetector(
                         onTap: () {
                           Get.toNamed("/signup");
                         },
-                        child: Text(
+                        child: const Text(
                           "Signup",
                           style: TextStyle(color: Colors.amber),
                         ),
                       ),
-                      Spacer(),
-                      Text("Forgot password?"),
-                      SizedBox(width: 5),
-                      Text(
+                      const Spacer(),
+                      const Text("Forgot password?"),
+                      const SizedBox(width: 5),
+                      const Text(
                         "Reset password",
                         style: TextStyle(color: Colors.amber),
                       ),

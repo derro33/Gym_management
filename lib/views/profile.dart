@@ -9,7 +9,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  // Hardcoded data — will be replaced with API later
   final Map<String, dynamic> user = {
     "full_name": "John Doe",
     "email": "johndoe@gmail.com",
@@ -65,7 +64,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   onPressed: () {
                     Navigator.pop(context);
-                    // Clears all screens and goes back to login
                     Get.offAllNamed("/");
                   },
                   child: const Text(
@@ -81,7 +79,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // Membership color
   Color _membershipColor(String type) {
     switch (type.toLowerCase()) {
       case "premium":
@@ -109,7 +106,6 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Header ─────────────────────────────────────
               const Text(
                 "My Profile",
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
@@ -120,8 +116,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               const SizedBox(height: 20),
-
-              // ── Profile Card ───────────────────────────────
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
@@ -135,7 +129,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 child: Column(
                   children: [
-                    // Avatar with initials
                     CircleAvatar(
                       radius: 40,
                       backgroundColor: Colors.white,
@@ -177,8 +170,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
 
                     const SizedBox(height: 10),
-
-                    // Membership badge
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -209,8 +200,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               const SizedBox(height: 20),
-
-              // ── Stats Row ──────────────────────────────────
               Row(
                 children: [
                   _statCard(
@@ -237,8 +226,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               const SizedBox(height: 20),
-
-              // ── Account Info ───────────────────────────────
               const Text(
                 "Account Info",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -272,8 +259,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               const SizedBox(height: 20),
-
-              // ── Membership Info ────────────────────────────
               const Text(
                 "Membership Info",
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -313,8 +298,6 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
 
               const SizedBox(height: 20),
-
-              // ── Logout Button ──────────────────────────────
               GestureDetector(
                 onTap: _handleLogout,
                 child: Container(
@@ -351,8 +334,6 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
-
-  // ── Reusable Widgets ─────────────────────────────────────────
   Widget _infoTile(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
