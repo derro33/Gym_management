@@ -138,4 +138,21 @@ class ApiService {
       return {"success": false, "message": "Could not connect to server"};
     }
   }
+
+  // New checkout method
+  static Future<Map<String, dynamic>> checkOut({
+    required int userId,
+    required int bookingId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/attendance/checkout.php"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"user_id": userId, "booking_id": bookingId}),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": "Could not connect to server"};
+    }
+  }
 }

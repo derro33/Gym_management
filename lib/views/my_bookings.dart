@@ -16,8 +16,8 @@ class _MyBookingsState extends State<MyBookings> {
   String _selectedFilter = "All";
   final List<String> _filters = ["All", "Booked", "Completed", "Cancelled"];
 
-  // Track which booking is currently being checked in
   int? _checkingInBookingId;
+  int? _checkingOutBookingId;
 
   final userController = Get.find<UserController>();
 
@@ -29,9 +29,7 @@ class _MyBookingsState extends State<MyBookings> {
 
   void _loadBookings() async {
     setState(() => _isLoading = true);
-
     final result = await ApiService.getBookings(userController.userId);
-
     if (result['success']) {
       setState(() {
         bookings = result['bookings'];
@@ -49,7 +47,7 @@ class _MyBookingsState extends State<MyBookings> {
     }
   }
 
-  // ── Check In ─────────────────────────────────────────────────
+  // ── Check In ──────────────────────────────────────────────────
   void _handleCheckIn(int bookingId) async {
     setState(() => _checkingInBookingId = bookingId);
 
@@ -61,7 +59,6 @@ class _MyBookingsState extends State<MyBookings> {
     setState(() => _checkingInBookingId = null);
 
     if (result['success']) {
-      // Reload so the button disappears and status updates
       _loadBookings();
       Get.snackbar(
         "Checked In!",
@@ -82,7 +79,99 @@ class _MyBookingsState extends State<MyBookings> {
     }
   }
 
-  // ── Cancel Booking ───────────────────────────────────────────
+  // ── Check Out — shows confirmation dialog first ───────────────
+  void _handleCheckOut(int bookingId, String slotName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        icon: const Icon(Icons.logout, color: Colors.orange, size: 44),
+        title: const Text(
+          "Complete Session?",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "Are you done with your \"$slotName\" session?\n\nThis will mark the session as completed.",
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "Not Yet",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await _confirmCheckOut(bookingId);
+                  },
+                  child: const Text(
+                    "Yes, Done!",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Actually call checkout API after confirmation ─────────────
+  Future<void> _confirmCheckOut(int bookingId) async {
+    setState(() => _checkingOutBookingId = bookingId);
+
+    final result = await ApiService.checkOut(
+      userId: userController.userId,
+      bookingId: bookingId,
+    );
+
+    setState(() => _checkingOutBookingId = null);
+
+    if (result['success']) {
+      _loadBookings();
+      Get.snackbar(
+        "Session Completed!",
+        "Great work! Your session has been recorded.",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+        icon: const Icon(Icons.fitness_center, color: Colors.white),
+      );
+    } else {
+      Get.snackbar(
+        "Checkout Failed",
+        result['message'],
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // ── Cancel Booking ────────────────────────────────────────────
   void _cancelBooking(int bookingId) {
     showDialog(
       context: context,
@@ -336,11 +425,22 @@ class _MyBookingsState extends State<MyBookings> {
                             final int bookingId = int.parse(
                               booking["id"].toString(),
                             );
-                            // null means not checked in yet
+                            final String slotName =
+                                booking["slot_name"] ?? "Session";
+
+                            // Check-in state
                             final bool isCheckedIn =
                                 booking["attendance_id"] != null;
+
+                            // Checkout state — checked_out_at is null
+                            // means checked in but not yet checked out
+                            final bool isCheckedOut =
+                                booking["checked_out_at"] != null;
+
                             final bool isCheckingIn =
                                 _checkingInBookingId == bookingId;
+                            final bool isCheckingOut =
+                                _checkingOutBookingId == bookingId;
 
                             return Container(
                               margin: const EdgeInsets.only(bottom: 14),
@@ -360,7 +460,7 @@ class _MyBookingsState extends State<MyBookings> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Top row: icon + details + status
+                                    // ── Top row ──────────
                                     Row(
                                       children: [
                                         Container(
@@ -386,7 +486,7 @@ class _MyBookingsState extends State<MyBookings> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                booking["slot_name"],
+                                                slotName,
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 15,
@@ -437,120 +537,104 @@ class _MyBookingsState extends State<MyBookings> {
                                       ],
                                     ),
 
-                                    // Bottom row: Check In + Cancel buttons
+                                    // ── Action buttons ────
                                     // Only show for booked status
                                     if (status == "booked") ...[
                                       const SizedBox(height: 12),
                                       const Divider(height: 1),
                                       const SizedBox(height: 12),
-                                      Row(
-                                        children: [
-                                          // Check In button
-                                          Expanded(
-                                            child: SizedBox(
-                                              height: 38,
-                                              child: ElevatedButton.icon(
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: isCheckedIn
-                                                      ? Colors.green.shade50
-                                                      : Colors.green,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          10,
-                                                        ),
-                                                  ),
-                                                  elevation: 0,
-                                                ),
-                                                onPressed:
-                                                    isCheckedIn || isCheckingIn
-                                                    ? null
-                                                    : () => _handleCheckIn(
-                                                        bookingId,
-                                                      ),
+
+                                      // Show Check In OR Check Out
+                                      // depending on state
+                                      if (!isCheckedIn) ...[
+                                        // Not checked in yet —
+                                        // show Check In + Cancel
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: _actionButton(
+                                                label: isCheckingIn
+                                                    ? "Checking in..."
+                                                    : "Check In",
                                                 icon: isCheckingIn
-                                                    ? const SizedBox(
-                                                        height: 16,
-                                                        width: 16,
-                                                        child:
-                                                            CircularProgressIndicator(
-                                                              color:
-                                                                  Colors.white,
-                                                              strokeWidth: 2,
-                                                            ),
-                                                      )
-                                                    : Icon(
-                                                        isCheckedIn
-                                                            ? Icons.check_circle
-                                                            : Icons.login,
-                                                        color: isCheckedIn
-                                                            ? Colors.green
-                                                            : Colors.white,
-                                                        size: 16,
-                                                      ),
-                                                label: Text(
-                                                  isCheckedIn
-                                                      ? "Checked In"
-                                                      : isCheckingIn
-                                                      ? "Checking in..."
-                                                      : "Check In",
-                                                  style: TextStyle(
-                                                    color: isCheckedIn
-                                                        ? Colors.green
-                                                        : Colors.white,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-
-                                          const SizedBox(width: 10),
-
-                                          // Cancel button
-                                          Expanded(
-                                            child: SizedBox(
-                                              height: 38,
-                                              child: OutlinedButton.icon(
-                                                style: OutlinedButton.styleFrom(
-                                                  side: BorderSide(
-                                                    color: Colors.red.shade300,
-                                                  ),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          10,
-                                                        ),
-                                                  ),
-                                                ),
-                                                onPressed: isCheckedIn
                                                     ? null
-                                                    : () => _cancelBooking(
-                                                        bookingId,
-                                                      ),
-                                                icon: Icon(
-                                                  Icons.cancel,
-                                                  color: isCheckedIn
-                                                      ? Colors.grey
-                                                      : Colors.red.shade400,
-                                                  size: 16,
-                                                ),
-                                                label: Text(
-                                                  "Cancel",
-                                                  style: TextStyle(
-                                                    color: isCheckedIn
-                                                        ? Colors.grey
-                                                        : Colors.red.shade400,
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
+                                                    : Icons.login,
+                                                color: Colors.green,
+                                                isLoading: isCheckingIn,
+                                                onPressed: () =>
+                                                    _handleCheckIn(bookingId),
+                                                outlined: false,
                                               ),
                                             ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: _actionButton(
+                                                label: "Cancel",
+                                                icon: Icons.cancel,
+                                                color: Colors.red,
+                                                isLoading: false,
+                                                onPressed: () =>
+                                                    _cancelBooking(bookingId),
+                                                outlined: true,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ] else if (!isCheckedOut) ...[
+                                        // Checked in but not out yet —
+                                        // show Check Out button
+                                        _actionButton(
+                                          label: isCheckingOut
+                                              ? "Checking out..."
+                                              : "Check Out",
+                                          icon: isCheckingOut
+                                              ? null
+                                              : Icons.logout,
+                                          color: Colors.orange,
+                                          isLoading: isCheckingOut,
+                                          onPressed: () => _handleCheckOut(
+                                            bookingId,
+                                            slotName,
                                           ),
-                                        ],
-                                      ),
+                                          outlined: false,
+                                          fullWidth: true,
+                                        ),
+                                      ] else ...[
+                                        // Fully checked out —
+                                        // show completion indicator
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 10,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.shade50,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.check_circle,
+                                                color: Colors.green,
+                                                size: 16,
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                "Session completed — awaiting status update",
+                                                style: TextStyle(
+                                                  color: Colors.green,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ],
                                 ),
@@ -564,6 +648,71 @@ class _MyBookingsState extends State<MyBookings> {
           ),
         ),
       ),
+    );
+  }
+
+  // ── Reusable action button ────────────────────────────────────
+  Widget _actionButton({
+    required String label,
+    required IconData? icon,
+    required Color color,
+    required bool isLoading,
+    required VoidCallback onPressed,
+    required bool outlined,
+    bool fullWidth = false,
+  }) {
+    final Widget child = isLoading
+        ? SizedBox(
+            height: 16,
+            width: 16,
+            child: CircularProgressIndicator(
+              color: outlined ? color : Colors.white,
+              strokeWidth: 2,
+            ),
+          )
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: outlined ? color : Colors.white, size: 16),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: outlined ? color : Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          );
+
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+    );
+
+    return SizedBox(
+      width: fullWidth ? double.infinity : null,
+      height: 38,
+      child: outlined
+          ? OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: color.withOpacity(0.6)),
+                shape: shape,
+              ),
+              onPressed: isLoading ? null : onPressed,
+              child: child,
+            )
+          : ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                shape: shape,
+                elevation: 0,
+              ),
+              onPressed: isLoading ? null : onPressed,
+              child: child,
+            ),
     );
   }
 
