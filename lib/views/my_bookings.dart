@@ -16,7 +16,9 @@ class _MyBookingsState extends State<MyBookings> {
   String _selectedFilter = "All";
   final List<String> _filters = ["All", "Booked", "Completed", "Cancelled"];
 
-  // Get real logged-in user id from session
+  // Track which booking is currently being checked in
+  int? _checkingInBookingId;
+
   final userController = Get.find<UserController>();
 
   @override
@@ -47,6 +49,40 @@ class _MyBookingsState extends State<MyBookings> {
     }
   }
 
+  // ── Check In ─────────────────────────────────────────────────
+  void _handleCheckIn(int bookingId) async {
+    setState(() => _checkingInBookingId = bookingId);
+
+    final result = await ApiService.checkIn(
+      userId: userController.userId,
+      bookingId: bookingId,
+    );
+
+    setState(() => _checkingInBookingId = null);
+
+    if (result['success']) {
+      // Reload so the button disappears and status updates
+      _loadBookings();
+      Get.snackbar(
+        "Checked In!",
+        "Your attendance has been recorded successfully.",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
+      );
+    } else {
+      Get.snackbar(
+        "Check In Failed",
+        result['message'],
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // ── Cancel Booking ───────────────────────────────────────────
   void _cancelBooking(int bookingId) {
     showDialog(
       context: context,
@@ -167,6 +203,7 @@ class _MyBookingsState extends State<MyBookings> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Header ─────────────────────────────────────
               const Text(
                 "My Bookings",
                 style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
@@ -175,9 +212,10 @@ class _MyBookingsState extends State<MyBookings> {
                 "Track and manage your gym sessions",
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
+
               const SizedBox(height: 16),
 
-              // Summary Row
+              // ── Summary Row ────────────────────────────────
               Row(
                 children: [
                   _summaryCard(
@@ -221,7 +259,7 @@ class _MyBookingsState extends State<MyBookings> {
 
               const SizedBox(height: 16),
 
-              // Filter Tabs
+              // ── Filter Tabs ────────────────────────────────
               SizedBox(
                 height: 38,
                 child: ListView.separated(
@@ -263,7 +301,7 @@ class _MyBookingsState extends State<MyBookings> {
 
               const SizedBox(height: 16),
 
-              // Bookings List
+              // ── Bookings List ──────────────────────────────
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -298,6 +336,11 @@ class _MyBookingsState extends State<MyBookings> {
                             final int bookingId = int.parse(
                               booking["id"].toString(),
                             );
+                            // null means not checked in yet
+                            final bool isCheckedIn =
+                                booking["attendance_id"] != null;
+                            final bool isCheckingIn =
+                                _checkingInBookingId == bookingId;
 
                             return Container(
                               margin: const EdgeInsets.only(bottom: 14),
@@ -314,57 +357,60 @@ class _MyBookingsState extends State<MyBookings> {
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(16),
-                                child: Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: _statusColor(
-                                          status,
-                                        ).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Icon(
-                                        _statusIcon(status),
-                                        color: _statusColor(status),
-                                        size: 26,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            booking["slot_name"],
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            booking["booking_date"],
-                                            style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                          Text(
-                                            "${booking["start_time"]} – ${booking["end_time"]}",
-                                            style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
+                                    // Top row: icon + details + status
+                                    Row(
                                       children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: _statusColor(
+                                              status,
+                                            ).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            _statusIcon(status),
+                                            color: _statusColor(status),
+                                            size: 26,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                booking["slot_name"],
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 15,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                booking["booking_date"],
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade600,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                              Text(
+                                                "${booking["start_time"]} – ${booking["end_time"]}",
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade600,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        // Status badge
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 10,
@@ -388,23 +434,124 @@ class _MyBookingsState extends State<MyBookings> {
                                             ),
                                           ),
                                         ),
-                                        if (status == "booked") ...[
-                                          const SizedBox(height: 8),
-                                          GestureDetector(
-                                            onTap: () =>
-                                                _cancelBooking(bookingId),
-                                            child: const Text(
-                                              "Cancel",
-                                              style: TextStyle(
-                                                color: Colors.red,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
+                                      ],
+                                    ),
+
+                                    // Bottom row: Check In + Cancel buttons
+                                    // Only show for booked status
+                                    if (status == "booked") ...[
+                                      const SizedBox(height: 12),
+                                      const Divider(height: 1),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          // Check In button
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: 38,
+                                              child: ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: isCheckedIn
+                                                      ? Colors.green.shade50
+                                                      : Colors.green,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                  ),
+                                                  elevation: 0,
+                                                ),
+                                                onPressed:
+                                                    isCheckedIn || isCheckingIn
+                                                    ? null
+                                                    : () => _handleCheckIn(
+                                                        bookingId,
+                                                      ),
+                                                icon: isCheckingIn
+                                                    ? const SizedBox(
+                                                        height: 16,
+                                                        width: 16,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              color:
+                                                                  Colors.white,
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      )
+                                                    : Icon(
+                                                        isCheckedIn
+                                                            ? Icons.check_circle
+                                                            : Icons.login,
+                                                        color: isCheckedIn
+                                                            ? Colors.green
+                                                            : Colors.white,
+                                                        size: 16,
+                                                      ),
+                                                label: Text(
+                                                  isCheckedIn
+                                                      ? "Checked In"
+                                                      : isCheckingIn
+                                                      ? "Checking in..."
+                                                      : "Check In",
+                                                  style: TextStyle(
+                                                    color: isCheckedIn
+                                                        ? Colors.green
+                                                        : Colors.white,
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+
+                                          const SizedBox(width: 10),
+
+                                          // Cancel button
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: 38,
+                                              child: OutlinedButton.icon(
+                                                style: OutlinedButton.styleFrom(
+                                                  side: BorderSide(
+                                                    color: Colors.red.shade300,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                  ),
+                                                ),
+                                                onPressed: isCheckedIn
+                                                    ? null
+                                                    : () => _cancelBooking(
+                                                        bookingId,
+                                                      ),
+                                                icon: Icon(
+                                                  Icons.cancel,
+                                                  color: isCheckedIn
+                                                      ? Colors.grey
+                                                      : Colors.red.shade400,
+                                                  size: 16,
+                                                ),
+                                                label: Text(
+                                                  "Cancel",
+                                                  style: TextStyle(
+                                                    color: isCheckedIn
+                                                        ? Colors.grey
+                                                        : Colors.red.shade400,
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ],
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),

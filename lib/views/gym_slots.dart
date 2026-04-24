@@ -15,7 +15,6 @@ class _GymSlotsState extends State<GymSlots> {
   bool _isLoading = true;
   int? _bookingIndex;
 
-  // Get real logged-in user id from session
   final userController = Get.find<UserController>();
 
   @override
@@ -100,7 +99,11 @@ class _GymSlotsState extends State<GymSlots> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pop(context);
+                // Reload slots to update capacity bar
+                _loadSlots();
+              },
               child: const Text("Okay", style: TextStyle(color: Colors.white)),
             ),
           ),
@@ -110,6 +113,7 @@ class _GymSlotsState extends State<GymSlots> {
   }
 
   Color _capacityColor(int capacity, int booked) {
+    if (capacity == 0) return Colors.green;
     final double percentage = booked / capacity;
     if (percentage >= 1.0) return Colors.red;
     if (percentage >= 0.7) return Colors.orange;
@@ -171,11 +175,15 @@ class _GymSlotsState extends State<GymSlots> {
                           itemCount: slots.length,
                           itemBuilder: (context, index) {
                             final slot = slots[index];
-                            final int capacity = int.parse(
-                              slot['max_capacity'].toString(),
-                            );
+                            final int capacity =
+                                int.tryParse(slot['max_capacity'].toString()) ??
+                                0;
+                            // Use real booked_count from API
+                            final int booked =
+                                int.tryParse(slot['booked_count'].toString()) ??
+                                0;
                             final bool isBooking = _bookingIndex == index;
-                            final int booked = 0;
+                            final bool isFull = booked >= capacity;
                             final Color capacityColor = _capacityColor(
                               capacity,
                               booked,
@@ -199,6 +207,7 @@ class _GymSlotsState extends State<GymSlots> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // Slot name + capacity badge
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
@@ -234,7 +243,10 @@ class _GymSlotsState extends State<GymSlots> {
                                         ),
                                       ],
                                     ),
+
                                     const SizedBox(height: 12),
+
+                                    // Time
                                     Row(
                                       children: [
                                         const Icon(
@@ -252,7 +264,10 @@ class _GymSlotsState extends State<GymSlots> {
                                         ),
                                       ],
                                     ),
+
                                     const SizedBox(height: 8),
+
+                                    // Days
                                     Row(
                                       children: [
                                         const Icon(
@@ -270,23 +285,36 @@ class _GymSlotsState extends State<GymSlots> {
                                         ),
                                       ],
                                     ),
+
                                     const SizedBox(height: 12),
+
+                                    // Real capacity progress bar
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(10),
                                       child: LinearProgressIndicator(
-                                        value: booked / capacity,
+                                        value: capacity > 0
+                                            ? (booked / capacity).clamp(
+                                                0.0,
+                                                1.0,
+                                              )
+                                            : 0,
                                         backgroundColor: Colors.grey.shade200,
                                         color: capacityColor,
                                         minHeight: 8,
                                       ),
                                     ),
+
                                     const SizedBox(height: 14),
+
+                                    // Book button — disabled if full
                                     SizedBox(
                                       width: double.infinity,
                                       height: 44,
                                       child: ElevatedButton(
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.blueAccent,
+                                          backgroundColor: isFull
+                                              ? Colors.grey.shade300
+                                              : Colors.blueAccent,
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(
                                               12,
@@ -294,7 +322,7 @@ class _GymSlotsState extends State<GymSlots> {
                                           ),
                                           elevation: 0,
                                         ),
-                                        onPressed: isBooking
+                                        onPressed: isBooking || isFull
                                             ? null
                                             : () => _handleBooking(index),
                                         child: isBooking
@@ -307,10 +335,14 @@ class _GymSlotsState extends State<GymSlots> {
                                                       strokeWidth: 2.5,
                                                     ),
                                               )
-                                            : const Text(
-                                                "Book Slot",
+                                            : Text(
+                                                isFull
+                                                    ? "Slot Full"
+                                                    : "Book Slot",
                                                 style: TextStyle(
-                                                  color: Colors.white,
+                                                  color: isFull
+                                                      ? Colors.grey.shade600
+                                                      : Colors.white,
                                                   fontWeight: FontWeight.w600,
                                                   fontSize: 15,
                                                 ),
