@@ -44,6 +44,22 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/auth/reset_password.php"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({"email": email, "new_password": newPassword}),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": "Could not connect to server"};
+    }
+  }
+
   static Future<Map<String, dynamic>> getProfile(int userId) async {
     try {
       final response = await http.get(
@@ -69,6 +85,17 @@ class ApiService {
           "full_name": fullName,
           "phone": phone,
         }),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": "Could not connect to server"};
+    }
+  }
+
+  static Future<Map<String, dynamic>> getBookingSummary(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse("$baseUrl/bookings/summary.php?user_id=$userId"),
       );
       return jsonDecode(response.body);
     } catch (e) {

@@ -105,6 +105,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 30),
+
+                // ── Email label ───────────────────────────────
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
                   child: Row(
@@ -121,6 +123,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                // ── Email field ───────────────────────────────
                 TextFormField(
                   controller: _usernameController,
                   validator: _validateUsername,
@@ -133,7 +137,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     prefixIcon: const Icon(Icons.person),
                   ),
                 ),
+
                 const SizedBox(height: 30),
+
+                // ── Password label ────────────────────────────
                 Padding(
                   padding: const EdgeInsets.fromLTRB(10, 0, 0, 0),
                   child: Row(
@@ -150,6 +157,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+
+                // ── Password field ────────────────────────────
                 TextFormField(
                   controller: _passwordController,
                   validator: _validatePassword,
@@ -174,7 +183,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 20),
+
+                // ── Login button ──────────────────────────────
                 GestureDetector(
                   onTap: _isLoading ? null : _handleLogin,
                   child: Container(
@@ -202,6 +214,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                   ),
                 ),
+
+                // ── Bottom links ──────────────────────────────
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
@@ -220,9 +234,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Spacer(),
                       const Text("Forgot password?"),
                       const SizedBox(width: 5),
-                      const Text(
-                        "Reset password",
-                        style: TextStyle(color: Colors.amber),
+                      // ✅ Reset password now navigates to reset screen
+                      GestureDetector(
+                        onTap: () {
+                          Get.toNamed("/reset-password");
+                        },
+                        child: const Text(
+                          "Reset password",
+                          style: TextStyle(color: Colors.amber),
+                        ),
                       ),
                     ],
                   ),
