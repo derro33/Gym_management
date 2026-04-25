@@ -33,7 +33,6 @@ class _ProfilePageState extends State<ProfilePage> {
         _isLoading = false;
       });
     } else {
-      // If API fails, fall back to session data so screen is not blank
       setState(() {
         profileData = {
           'full_name': userController.fullName,
@@ -49,14 +48,202 @@ class _ProfilePageState extends State<ProfilePage> {
         };
         _isLoading = false;
       });
-      Get.snackbar(
-        "Notice",
-        "Could not load full profile. Showing basic info.",
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-      );
     }
+  }
+
+  // ── Edit Profile Bottom Sheet ─────────────────────────────────
+  void _showEditSheet() {
+    final nameController = TextEditingController(
+      text: profileData['full_name']?.toString() ?? '',
+    );
+    final phoneController = TextEditingController(
+      text: profileData['phone']?.toString() ?? '',
+    );
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            // Push form up when keyboard opens
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Handle bar
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+                  "Edit Profile",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const Text(
+                  "Update your name and phone number",
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Full name field
+                TextFormField(
+                  controller: nameController,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return "Full name cannot be empty";
+                    }
+                    if (value.trim().length < 3) {
+                      return "Name must be at least 3 characters";
+                    }
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    labelText: "Full Name",
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Phone field
+                TextFormField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value != null && value.isNotEmpty && value.length < 7) {
+                      return "Enter a valid phone number";
+                    }
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    labelText: "Phone Number",
+                    prefixIcon: const Icon(Icons.phone),
+                    hintText: "Optional",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Save button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 0,
+                    ),
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            if (!formKey.currentState!.validate()) return;
+
+                            setSheetState(() => isSaving = true);
+
+                            final result = await ApiService.updateProfile(
+                              userId: userController.userId,
+                              fullName: nameController.text.trim(),
+                              phone: phoneController.text.trim(),
+                            );
+
+                            setSheetState(() => isSaving = false);
+
+                            if (result['success']) {
+                              // Update session with new name
+                              final updatedUser = Map<String, dynamic>.from(
+                                userController.user,
+                              );
+                              updatedUser['full_name'] = nameController.text
+                                  .trim();
+                              updatedUser['phone'] = phoneController.text
+                                  .trim();
+                              userController.saveUser(updatedUser);
+
+                              // Close sheet
+                              Navigator.pop(context);
+
+                              // Reload profile to show new data
+                              _loadProfile();
+
+                              Get.snackbar(
+                                "Profile Updated!",
+                                "Your changes have been saved.",
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                                icon: const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                ),
+                              );
+                            } else {
+                              Get.snackbar(
+                                "Update Failed",
+                                result['message'] ?? "Something went wrong",
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.red,
+                                colorText: Colors.white,
+                              );
+                            }
+                          },
+                    child: isSaving
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Text(
+                            "Save Changes",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _handleLogout() {
@@ -158,7 +345,6 @@ class _ProfilePageState extends State<ProfilePage> {
         ? 0
         : (attended / totalSessions) * 100;
 
-    // initials for avatar
     final String initials = fullName.trim().isNotEmpty
         ? fullName
               .trim()
@@ -180,19 +366,67 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Header ──────────────────────────────────
-                const Text(
-                  "My Profile",
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                ),
-                const Text(
-                  "Manage your account details",
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                // ── Header with Edit button ───────────────────
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "My Profile",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "Manage your account details",
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                    // Edit button
+                    GestureDetector(
+                      onTap: _showEditSheet,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blueAccent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.blueAccent.withOpacity(0.3),
+                          ),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.edit,
+                              color: Colors.blueAccent,
+                              size: 16,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              "Edit",
+                              style: TextStyle(
+                                color: Colors.blueAccent,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 20),
 
-                // ── Profile Card ─────────────────────────────
+                // ── Profile Card ──────────────────────────────
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -271,7 +505,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                 const SizedBox(height: 20),
 
-                // ── Stats Row ─────────────────────────────────
+                // ── Stats ─────────────────────────────────────
                 Row(
                   children: [
                     _statCard(
@@ -371,7 +605,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                 const SizedBox(height: 20),
 
-                // ── Logout Button ─────────────────────────────
+                // ── Logout ────────────────────────────────────
                 GestureDetector(
                   onTap: _handleLogout,
                   child: Container(

@@ -55,6 +55,27 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> updateProfile({
+    required int userId,
+    required String fullName,
+    required String phone,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/user/update_profile.php"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "user_id": userId,
+          "full_name": fullName,
+          "phone": phone,
+        }),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": "Could not connect to server"};
+    }
+  }
+
   static Future<Map<String, dynamic>> getSlots() async {
     try {
       final response = await http.get(Uri.parse("$baseUrl/slots/get_all.php"));
@@ -139,7 +160,6 @@ class ApiService {
     }
   }
 
-  // New checkout method
   static Future<Map<String, dynamic>> checkOut({
     required int userId,
     required int bookingId,
