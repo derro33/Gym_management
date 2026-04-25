@@ -13,7 +13,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final TextEditingController _fullNameController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
@@ -25,7 +26,8 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   void dispose() {
     _fullNameController.dispose();
-    _usernameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -41,9 +43,21 @@ class _SignupScreenState extends State<SignupScreen> {
     return null;
   }
 
-  String? _validateUsername(String? value) {
+  String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
       return "Email is required";
+    }
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(value.trim())) {
+      return "Enter a valid email address";
+    }
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    // Phone is optional — only validate if something is typed
+    if (value != null && value.isNotEmpty && value.length < 7) {
+      return "Enter a valid phone number";
     }
     return null;
   }
@@ -72,8 +86,8 @@ class _SignupScreenState extends State<SignupScreen> {
       try {
         final result = await ApiService.signup(
           fullName: _fullNameController.text.trim(),
-          email: _usernameController.text.trim(),
-          phone: "",
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
           password: _passwordController.text.trim(),
         );
 
@@ -90,8 +104,6 @@ class _SignupScreenState extends State<SignupScreen> {
           );
 
           await Future.delayed(const Duration(seconds: 2));
-
-          // 🔁 Go to login page
           Get.offAllNamed("/");
         } else {
           Get.snackbar(
@@ -105,7 +117,6 @@ class _SignupScreenState extends State<SignupScreen> {
         }
       } catch (e) {
         setState(() => _isLoading = false);
-
         Get.snackbar(
           "Error",
           "Could not connect to server",
@@ -144,41 +155,66 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 30),
 
-            
+                // ── Full Name ─────────────────────────────────
                 TextFormField(
                   controller: _fullNameController,
                   validator: _validateFullName,
-                  decoration: const InputDecoration(
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
                     labelText: "Full Name",
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                
+                // ── Email ─────────────────────────────────────
                 TextFormField(
-                  controller: _usernameController,
-                  validator: _validateUsername,
-                  decoration: const InputDecoration(
+                  controller: _emailController,
+                  validator: _validateEmail,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
                     labelText: "Email",
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
+                    prefixIcon: const Icon(Icons.email),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                
+                // ── Phone (optional) ──────────────────────────
+                TextFormField(
+                  controller: _phoneController,
+                  validator: _validatePhone,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: "Phone Number",
+                    hintText: "Optional",
+                    prefixIcon: const Icon(Icons.phone),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Password ──────────────────────────────────
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_isPasswordVisible,
                   validator: _validatePassword,
                   decoration: InputDecoration(
                     labelText: "Password",
-                    border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.lock),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _isPasswordVisible
@@ -196,15 +232,17 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 20),
 
-                
+                // ── Confirm Password ──────────────────────────
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: !_isConfirmPasswordVisible,
                   validator: _validateConfirmPassword,
                   decoration: InputDecoration(
                     labelText: "Confirm Password",
-                    border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.lock),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _isConfirmPasswordVisible
@@ -223,27 +261,47 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 30),
 
+                // ── Sign Up Button ────────────────────────────
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 238, 142, 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     onPressed: _isLoading ? null : _handleSignup,
                     child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text("Sign Up"),
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Text(
+                            "Sign Up",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
+                // ── Already have account ──────────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Already have an account? "),
                     GestureDetector(
-                      onTap: () {
-                        Get.offAllNamed("/"); // 👈 go to login
-                      },
+                      onTap: () => Get.offAllNamed("/"),
                       child: const Text(
                         "Login",
                         style: TextStyle(
