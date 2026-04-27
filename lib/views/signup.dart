@@ -8,7 +8,6 @@ class SignupScreen extends StatefulWidget {
   @override
   State<SignupScreen> createState() => _SignupScreenState();
 }
-
 class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
 
@@ -154,8 +153,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
 
                 const SizedBox(height: 30),
-
-                // ── Full Name ─────────────────────────────────
                 TextFormField(
                   controller: _fullNameController,
                   validator: _validateFullName,
@@ -170,8 +167,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
 
                 const SizedBox(height: 20),
-
-                // ── Email ─────────────────────────────────────
                 TextFormField(
                   controller: _emailController,
                   validator: _validateEmail,
@@ -186,8 +181,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
 
                 const SizedBox(height: 20),
-
-                // ── Phone (optional) ──────────────────────────
                 TextFormField(
                   controller: _phoneController,
                   validator: _validatePhone,
@@ -203,8 +196,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
 
                 const SizedBox(height: 20),
-
-                // ── Password ──────────────────────────────────
                 TextFormField(
                   controller: _passwordController,
                   obscureText: !_isPasswordVisible,
@@ -231,8 +222,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
 
                 const SizedBox(height: 20),
-
-                // ── Confirm Password ──────────────────────────
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: !_isConfirmPasswordVisible,
@@ -260,8 +249,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
 
                 const SizedBox(height: 30),
-
-                // ── Sign Up Button ────────────────────────────
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -294,8 +281,6 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
 
                 const SizedBox(height: 20),
-
-                // ── Already have account ──────────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

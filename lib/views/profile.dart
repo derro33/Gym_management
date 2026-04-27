@@ -12,7 +12,6 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final userController = Get.find<UserController>();
-
   Map<String, dynamic> profileData = {};
   bool _isLoading = true;
 
@@ -24,9 +23,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _loadProfile() async {
     setState(() => _isLoading = true);
-
     final result = await ApiService.getProfile(userController.userId);
-
     if (result['success']) {
       setState(() {
         profileData = Map<String, dynamic>.from(result['user']);
@@ -51,7 +48,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // ── Edit Profile Bottom Sheet ─────────────────────────────────
   void _showEditSheet() {
     final nameController = TextEditingController(
       text: profileData['full_name']?.toString() ?? '',
@@ -75,7 +71,6 @@ class _ProfilePageState extends State<ProfilePage> {
             left: 24,
             right: 24,
             top: 24,
-            // Push form up when keyboard opens
             bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
           child: Form(
@@ -84,7 +79,6 @@ class _ProfilePageState extends State<ProfilePage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Handle bar
                 Center(
                   child: Container(
                     width: 40,
@@ -95,9 +89,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
                 const Text(
                   "Edit Profile",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -106,19 +98,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   "Update your name and phone number",
                   style: TextStyle(fontSize: 13, color: Colors.grey),
                 ),
-
                 const SizedBox(height: 24),
-
-                // Full name field
                 TextFormField(
                   controller: nameController,
                   validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
+                    if (value == null || value.trim().isEmpty)
                       return "Full name cannot be empty";
-                    }
-                    if (value.trim().length < 3) {
+                    if (value.trim().length < 3)
                       return "Name must be at least 3 characters";
-                    }
                     return null;
                   },
                   decoration: InputDecoration(
@@ -129,10 +116,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
-                // Phone field
                 TextFormField(
                   controller: phoneController,
                   keyboardType: TextInputType.phone,
@@ -151,10 +135,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
-                // Save button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -170,19 +151,14 @@ class _ProfilePageState extends State<ProfilePage> {
                         ? null
                         : () async {
                             if (!formKey.currentState!.validate()) return;
-
                             setSheetState(() => isSaving = true);
-
                             final result = await ApiService.updateProfile(
                               userId: userController.userId,
                               fullName: nameController.text.trim(),
                               phone: phoneController.text.trim(),
                             );
-
                             setSheetState(() => isSaving = false);
-
                             if (result['success']) {
-                              // Update session with new name
                               final updatedUser = Map<String, dynamic>.from(
                                 userController.user,
                               );
@@ -191,13 +167,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               updatedUser['phone'] = phoneController.text
                                   .trim();
                               userController.saveUser(updatedUser);
-
-                              // Close sheet
                               Navigator.pop(context);
-
-                              // Reload profile to show new data
                               _loadProfile();
-
                               Get.snackbar(
                                 "Profile Updated!",
                                 "Your changes have been saved.",
@@ -320,6 +291,64 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Widget _infoTile(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.blueAccent, size: 22),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() =>
+      Divider(height: 1, indent: 52, color: Colors.grey.shade200);
+
+  Widget _statCard(String label, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            Text(label, style: TextStyle(color: color, fontSize: 11)),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -344,7 +373,6 @@ class _ProfilePageState extends State<ProfilePage> {
     final double attendanceRate = totalSessions == 0
         ? 0
         : (attended / totalSessions) * 100;
-
     final String initials = fullName.trim().isNotEmpty
         ? fullName
               .trim()
@@ -366,7 +394,6 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Header with Edit button ───────────────────
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -386,7 +413,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ],
                     ),
-                    // Edit button
                     GestureDetector(
                       onTap: _showEditSheet,
                       child: Container(
@@ -423,10 +449,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 20),
-
-                // ── Profile Card ──────────────────────────────
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
@@ -502,10 +525,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // ── Stats ─────────────────────────────────────
                 Row(
                   children: [
                     _statCard(
@@ -530,10 +550,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 20),
-
-                // ── Account Info ──────────────────────────────
                 const Text(
                   "Account Info",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -567,10 +584,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // ── Membership Info ───────────────────────────
                 const Text(
                   "Membership Info",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -602,10 +616,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // ── Logout ────────────────────────────────────
                 GestureDetector(
                   onTap: _handleLogout,
                   child: Container(
@@ -634,69 +645,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _infoTile(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.blueAccent, size: 22),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _divider() =>
-      Divider(height: 1, indent: 52, color: Colors.grey.shade200);
-
-  Widget _statCard(String label, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-            Text(label, style: TextStyle(color: color, fontSize: 11)),
-          ],
         ),
       ),
     );

@@ -114,7 +114,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Icon ──────────────────────────────────────
                 Center(
                   child: Container(
                     height: 80,
@@ -132,8 +131,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
 
                 const SizedBox(height: 24),
-
-                // ── Title ─────────────────────────────────────
                 const Center(
                   child: Text(
                     "Reset Password",
@@ -152,8 +149,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
 
                 const SizedBox(height: 36),
-
-                // ── Email ─────────────────────────────────────
                 const Text(
                   "Email Address",
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
@@ -173,8 +168,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
 
                 const SizedBox(height: 20),
-
-                // ── New Password ──────────────────────────────
                 const Text(
                   "New Password",
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
@@ -206,8 +199,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
 
                 const SizedBox(height: 20),
-
-                // ── Confirm Password ──────────────────────────
                 const Text(
                   "Confirm New Password",
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
@@ -240,8 +231,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
 
                 const SizedBox(height: 32),
-
-                // ── Reset Button ──────────────────────────────
                 GestureDetector(
                   onTap: _isLoading ? null : _handleReset,
                   child: Container(
@@ -275,8 +264,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ),
 
                 const SizedBox(height: 20),
-
-                // ── Back to login ─────────────────────────────
                 Center(
                   child: GestureDetector(
                     onTap: () => Get.offAllNamed("/"),

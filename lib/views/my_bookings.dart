@@ -15,10 +15,8 @@ class _MyBookingsState extends State<MyBookings> {
   bool _isLoading = true;
   String _selectedFilter = "All";
   final List<String> _filters = ["All", "Booked", "Completed", "Cancelled"];
-
   int? _checkingInBookingId;
   int? _checkingOutBookingId;
-
   final userController = Get.find<UserController>();
 
   @override
@@ -47,17 +45,13 @@ class _MyBookingsState extends State<MyBookings> {
     }
   }
 
-  // ── Check In ──────────────────────────────────────────────────
   void _handleCheckIn(int bookingId) async {
     setState(() => _checkingInBookingId = bookingId);
-
     final result = await ApiService.checkIn(
       userId: userController.userId,
       bookingId: bookingId,
     );
-
     setState(() => _checkingInBookingId = null);
-
     if (result['success']) {
       _loadBookings();
       Get.snackbar(
@@ -79,7 +73,6 @@ class _MyBookingsState extends State<MyBookings> {
     }
   }
 
-  // ── Check Out — shows confirmation dialog first ───────────────
   void _handleCheckOut(int bookingId, String slotName) {
     showDialog(
       context: context,
@@ -139,17 +132,13 @@ class _MyBookingsState extends State<MyBookings> {
     );
   }
 
-  // ── Actually call checkout API after confirmation ─────────────
   Future<void> _confirmCheckOut(int bookingId) async {
     setState(() => _checkingOutBookingId = bookingId);
-
     final result = await ApiService.checkOut(
       userId: userController.userId,
       bookingId: bookingId,
     );
-
     setState(() => _checkingOutBookingId = null);
-
     if (result['success']) {
       _loadBookings();
       Get.snackbar(
@@ -171,7 +160,6 @@ class _MyBookingsState extends State<MyBookings> {
     }
   }
 
-  // ── Cancel Booking ────────────────────────────────────────────
   void _cancelBooking(int bookingId) {
     showDialog(
       context: context,
@@ -280,378 +268,69 @@ class _MyBookingsState extends State<MyBookings> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final filtered = _filteredBookings;
-
-    return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Header ─────────────────────────────────────
-              const Text(
-                "My Bookings",
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+  Widget _summaryCard(String label, String count, Color color, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              count,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
               ),
-              const Text(
-                "Track and manage your gym sessions",
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ── Summary Row ────────────────────────────────
-              Row(
-                children: [
-                  _summaryCard(
-                    "Total",
-                    bookings.length.toString(),
-                    Colors.blueAccent,
-                    Icons.list_alt,
-                  ),
-                  const SizedBox(width: 10),
-                  _summaryCard(
-                    "Booked",
-                    bookings
-                        .where((b) => b["status"] == "booked")
-                        .length
-                        .toString(),
-                    Colors.blue,
-                    Icons.calendar_month,
-                  ),
-                  const SizedBox(width: 10),
-                  _summaryCard(
-                    "Done",
-                    bookings
-                        .where((b) => b["status"] == "completed")
-                        .length
-                        .toString(),
-                    Colors.green,
-                    Icons.check_circle,
-                  ),
-                  const SizedBox(width: 10),
-                  _summaryCard(
-                    "Cancelled",
-                    bookings
-                        .where((b) => b["status"] == "cancelled")
-                        .length
-                        .toString(),
-                    Colors.red,
-                    Icons.cancel,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-
-              // ── Filter Tabs ────────────────────────────────
-              SizedBox(
-                height: 38,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _filters.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final filter = _filters[index];
-                    final bool isSelected = _selectedFilter == filter;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedFilter = filter),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.blueAccent : Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isSelected
-                                ? Colors.blueAccent
-                                : Colors.grey.shade300,
-                          ),
-                        ),
-                        child: Text(
-                          filter,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.grey,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // ── Bookings List ──────────────────────────────
-              Expanded(
-                child: _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : filtered.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.calendar_month,
-                              size: 60,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              "No ${_selectedFilter == "All" ? "" : _selectedFilter} bookings found",
-                              style: TextStyle(
-                                color: Colors.grey.shade400,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: () async => _loadBookings(),
-                        child: ListView.builder(
-                          itemCount: filtered.length,
-                          itemBuilder: (context, index) {
-                            final booking = filtered[index];
-                            final String status = booking["status"];
-                            final int bookingId = int.parse(
-                              booking["id"].toString(),
-                            );
-                            final String slotName =
-                                booking["slot_name"] ?? "Session";
-
-                            // Check-in state
-                            final bool isCheckedIn =
-                                booking["attendance_id"] != null;
-
-                            // Checkout state — checked_out_at is null
-                            // means checked in but not yet checked out
-                            final bool isCheckedOut =
-                                booking["checked_out_at"] != null;
-
-                            final bool isCheckingIn =
-                                _checkingInBookingId == bookingId;
-                            final bool isCheckingOut =
-                                _checkingOutBookingId == bookingId;
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 14),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.shade200,
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // ── Top row ──────────
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: _statusColor(
-                                              status,
-                                            ).withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            _statusIcon(status),
-                                            color: _statusColor(status),
-                                            size: 26,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                slotName,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 15,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                booking["booking_date"],
-                                                style: TextStyle(
-                                                  color: Colors.grey.shade600,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              Text(
-                                                "${booking["start_time"]} – ${booking["end_time"]}",
-                                                style: TextStyle(
-                                                  color: Colors.grey.shade600,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        // Status badge
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: _statusColor(
-                                              status,
-                                            ).withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            status[0].toUpperCase() +
-                                                status.substring(1),
-                                            style: TextStyle(
-                                              color: _statusColor(status),
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                    // ── Action buttons ────
-                                    // Only show for booked status
-                                    if (status == "booked") ...[
-                                      const SizedBox(height: 12),
-                                      const Divider(height: 1),
-                                      const SizedBox(height: 12),
-
-                                      // Show Check In OR Check Out
-                                      // depending on state
-                                      if (!isCheckedIn) ...[
-                                        // Not checked in yet —
-                                        // show Check In + Cancel
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: _actionButton(
-                                                label: isCheckingIn
-                                                    ? "Checking in..."
-                                                    : "Check In",
-                                                icon: isCheckingIn
-                                                    ? null
-                                                    : Icons.login,
-                                                color: Colors.green,
-                                                isLoading: isCheckingIn,
-                                                onPressed: () =>
-                                                    _handleCheckIn(bookingId),
-                                                outlined: false,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: _actionButton(
-                                                label: "Cancel",
-                                                icon: Icons.cancel,
-                                                color: Colors.red,
-                                                isLoading: false,
-                                                onPressed: () =>
-                                                    _cancelBooking(bookingId),
-                                                outlined: true,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ] else if (!isCheckedOut) ...[
-                                        // Checked in but not out yet —
-                                        // show Check Out button
-                                        _actionButton(
-                                          label: isCheckingOut
-                                              ? "Checking out..."
-                                              : "Check Out",
-                                          icon: isCheckingOut
-                                              ? null
-                                              : Icons.logout,
-                                          color: Colors.orange,
-                                          isLoading: isCheckingOut,
-                                          onPressed: () => _handleCheckOut(
-                                            bookingId,
-                                            slotName,
-                                          ),
-                                          outlined: false,
-                                          fullWidth: true,
-                                        ),
-                                      ] else ...[
-                                        // Fully checked out —
-                                        // show completion indicator
-                                        Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 10,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green.shade50,
-                                            borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons.check_circle,
-                                                color: Colors.green,
-                                                size: 16,
-                                              ),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                "Session completed — awaiting status update",
-                                                style: TextStyle(
-                                                  color: Colors.green,
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-              ),
-            ],
-          ),
+            ),
+            Text(label, style: TextStyle(color: color, fontSize: 11)),
+          ],
         ),
       ),
     );
   }
 
-  // ── Reusable action button ────────────────────────────────────
+  Widget _buildFilterTabs() {
+    return SizedBox(
+      height: 38,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _filters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final filter = _filters[index];
+          final bool isSelected = _selectedFilter == filter;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedFilter = filter),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.blueAccent : Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isSelected ? Colors.blueAccent : Colors.grey.shade300,
+                ),
+              ),
+              child: Text(
+                filter,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _actionButton({
     required String label,
     required IconData? icon,
@@ -716,28 +395,267 @@ class _MyBookingsState extends State<MyBookings> {
     );
   }
 
-  Widget _summaryCard(String label, String count, Color color, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
+  Widget _buildBookingCard(Map booking) {
+    final String status = booking["status"];
+    final int bookingId = int.parse(booking["id"].toString());
+    final String slotName = booking["slot_name"] ?? "Session";
+    final bool isCheckedIn = booking["attendance_id"] != null;
+    final bool isCheckedOut = booking["checked_out_at"] != null;
+    final bool isCheckingIn = _checkingInBookingId == bookingId;
+    final bool isCheckingOut = _checkingOutBookingId == bookingId;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(height: 4),
-            Text(
-              count,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _statusColor(status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _statusIcon(status),
+                    color: _statusColor(status),
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        slotName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        booking["booking_date"],
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        "${booking["start_time"]} – ${booking["end_time"]}",
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _statusColor(status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    status[0].toUpperCase() + status.substring(1),
+                    style: TextStyle(
+                      color: _statusColor(status),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            Text(label, style: TextStyle(color: color, fontSize: 11)),
+            if (status == "booked") ...[
+              const SizedBox(height: 12),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              if (!isCheckedIn) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: _actionButton(
+                        label: isCheckingIn ? "Checking in..." : "Check In",
+                        icon: isCheckingIn ? null : Icons.login,
+                        color: Colors.green,
+                        isLoading: isCheckingIn,
+                        onPressed: () => _handleCheckIn(bookingId),
+                        outlined: false,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _actionButton(
+                        label: "Cancel",
+                        icon: Icons.cancel,
+                        color: Colors.red,
+                        isLoading: false,
+                        onPressed: () => _cancelBooking(bookingId),
+                        outlined: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ] else if (!isCheckedOut) ...[
+                _actionButton(
+                  label: isCheckingOut ? "Checking out..." : "Check Out",
+                  icon: isCheckingOut ? null : Icons.logout,
+                  color: Colors.orange,
+                  isLoading: isCheckingOut,
+                  onPressed: () => _handleCheckOut(bookingId, slotName),
+                  outlined: false,
+                  fullWidth: true,
+                ),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        "Session completed — awaiting status update",
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
           ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _filteredBookings;
+    return Scaffold(
+      backgroundColor: Colors.grey.shade100,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "My Bookings",
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                "Track and manage your gym sessions",
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _summaryCard(
+                    "Total",
+                    bookings.length.toString(),
+                    Colors.blueAccent,
+                    Icons.list_alt,
+                  ),
+                  const SizedBox(width: 10),
+                  _summaryCard(
+                    "Booked",
+                    bookings
+                        .where((b) => b["status"] == "booked")
+                        .length
+                        .toString(),
+                    Colors.blue,
+                    Icons.calendar_month,
+                  ),
+                  const SizedBox(width: 10),
+                  _summaryCard(
+                    "Done",
+                    bookings
+                        .where((b) => b["status"] == "completed")
+                        .length
+                        .toString(),
+                    Colors.green,
+                    Icons.check_circle,
+                  ),
+                  const SizedBox(width: 10),
+                  _summaryCard(
+                    "Cancelled",
+                    bookings
+                        .where((b) => b["status"] == "cancelled")
+                        .length
+                        .toString(),
+                    Colors.red,
+                    Icons.cancel,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildFilterTabs(),
+              const SizedBox(height: 16),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : filtered.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.calendar_month,
+                              size: 60,
+                              color: Colors.grey.shade300,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              "No ${_selectedFilter == "All" ? "" : _selectedFilter} bookings found",
+                              style: TextStyle(
+                                color: Colors.grey.shade400,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async => _loadBookings(),
+                        child: ListView.builder(
+                          itemCount: filtered.length,
+                          itemBuilder: (context, index) =>
+                              _buildBookingCard(filtered[index]),
+                        ),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
