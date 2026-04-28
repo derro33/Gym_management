@@ -5,7 +5,6 @@ import 'package:flutter_application_1/services/api_service.dart';
 
 class MyBookings extends StatefulWidget {
   const MyBookings({super.key});
-
   @override
   State<MyBookings> createState() => _MyBookingsState();
 }
@@ -90,42 +89,15 @@ class _MyBookingsState extends State<MyBookings> {
           style: const TextStyle(fontSize: 14),
         ),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "Not Yet",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    await _confirmCheckOut(bookingId);
-                  },
-                  child: const Text(
-                    "Yes, Done!",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
+          _dialogButtons(
+            onNo: () => Navigator.pop(context),
+            onYes: () async {
+              Navigator.pop(context);
+              await _confirmCheckOut(bookingId);
+            },
+            noLabel: "Not Yet",
+            yesLabel: "Yes, Done!",
+            yesColor: Colors.orange,
           ),
         ],
       ),
@@ -171,63 +143,76 @@ class _MyBookingsState extends State<MyBookings> {
         ),
         content: const Text("Are you sure you want to cancel this booking?"),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("No", style: TextStyle(color: Colors.grey)),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () async {
-                    Navigator.pop(context);
-                    final result = await ApiService.cancelBooking(
-                      bookingId: bookingId,
-                      userId: userController.userId,
-                    );
-                    if (result['success']) {
-                      _loadBookings();
-                      Get.snackbar(
-                        "Cancelled",
-                        "Booking cancelled successfully",
-                        snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: Colors.red,
-                        colorText: Colors.white,
-                      );
-                    } else {
-                      Get.snackbar(
-                        "Error",
-                        result['message'],
-                        snackPosition: SnackPosition.BOTTOM,
-                        backgroundColor: Colors.red,
-                        colorText: Colors.white,
-                      );
-                    }
-                  },
-                  child: const Text(
-                    "Yes, Cancel",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
+          _dialogButtons(
+            onNo: () => Navigator.pop(context),
+            onYes: () async {
+              Navigator.pop(context);
+              final result = await ApiService.cancelBooking(
+                bookingId: bookingId,
+                userId: userController.userId,
+              );
+              if (result['success']) {
+                _loadBookings();
+                Get.snackbar(
+                  "Cancelled",
+                  "Booking cancelled successfully",
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              } else {
+                Get.snackbar(
+                  "Error",
+                  result['message'],
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            noLabel: "No",
+            yesLabel: "Yes, Cancel",
+            yesColor: Colors.red,
           ),
         ],
       ),
+    );
+  }
+
+  Widget _dialogButtons({
+    required VoidCallback onNo,
+    required VoidCallback onYes,
+    required String noLabel,
+    required String yesLabel,
+    required Color yesColor,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: onNo,
+            child: Text(noLabel, style: const TextStyle(color: Colors.grey)),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: yesColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: onYes,
+            child: Text(yesLabel, style: const TextStyle(color: Colors.white)),
+          ),
+        ),
+      ],
     );
   }
 
@@ -340,7 +325,7 @@ class _MyBookingsState extends State<MyBookings> {
     required bool outlined,
     bool fullWidth = false,
   }) {
-    final Widget child = isLoading
+    final child = isLoading
         ? SizedBox(
             height: 16,
             width: 16,
@@ -370,7 +355,6 @@ class _MyBookingsState extends State<MyBookings> {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(10),
     );
-
     return SizedBox(
       width: fullWidth ? double.infinity : null,
       height: 38,
@@ -490,7 +474,7 @@ class _MyBookingsState extends State<MyBookings> {
               const SizedBox(height: 12),
               const Divider(height: 1),
               const SizedBox(height: 12),
-              if (!isCheckedIn) ...[
+              if (!isCheckedIn)
                 Row(
                   children: [
                     Expanded(
@@ -515,8 +499,8 @@ class _MyBookingsState extends State<MyBookings> {
                       ),
                     ),
                   ],
-                ),
-              ] else if (!isCheckedOut) ...[
+                )
+              else if (!isCheckedOut)
                 _actionButton(
                   label: isCheckingOut ? "Checking out..." : "Check Out",
                   icon: isCheckingOut ? null : Icons.logout,
@@ -525,8 +509,8 @@ class _MyBookingsState extends State<MyBookings> {
                   onPressed: () => _handleCheckOut(bookingId, slotName),
                   outlined: false,
                   fullWidth: true,
-                ),
-              ] else ...[
+                )
+              else
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -550,7 +534,6 @@ class _MyBookingsState extends State<MyBookings> {
                     ],
                   ),
                 ),
-              ],
             ],
           ],
         ),

@@ -5,7 +5,6 @@ import 'package:flutter_application_1/services/api_service.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
-
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
@@ -49,10 +48,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showEditSheet() {
-    final nameController = TextEditingController(
+    final nameCtrl = TextEditingController(
       text: profileData['full_name']?.toString() ?? '',
     );
-    final phoneController = TextEditingController(
+    final phoneCtrl = TextEditingController(
       text: profileData['phone']?.toString() ?? '',
     );
     final formKey = GlobalKey<FormState>();
@@ -66,7 +65,7 @@ class _ProfilePageState extends State<ProfilePage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
+        builder: (context, setSheet) => Padding(
           padding: EdgeInsets.only(
             left: 24,
             right: 24,
@@ -100,11 +99,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
-                  controller: nameController,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty)
+                  controller: nameCtrl,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty)
                       return "Full name cannot be empty";
-                    if (value.trim().length < 3)
+                    if (v.trim().length < 3)
                       return "Name must be at least 3 characters";
                     return null;
                   },
@@ -118,18 +117,17 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: phoneController,
+                  controller: phoneCtrl,
                   keyboardType: TextInputType.phone,
-                  validator: (value) {
-                    if (value != null && value.isNotEmpty && value.length < 7) {
+                  validator: (v) {
+                    if (v != null && v.isNotEmpty && v.length < 7)
                       return "Enter a valid phone number";
-                    }
                     return null;
                   },
                   decoration: InputDecoration(
                     labelText: "Phone Number",
-                    prefixIcon: const Icon(Icons.phone),
                     hintText: "Optional",
+                    prefixIcon: const Icon(Icons.phone),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -151,22 +149,20 @@ class _ProfilePageState extends State<ProfilePage> {
                         ? null
                         : () async {
                             if (!formKey.currentState!.validate()) return;
-                            setSheetState(() => isSaving = true);
+                            setSheet(() => isSaving = true);
                             final result = await ApiService.updateProfile(
                               userId: userController.userId,
-                              fullName: nameController.text.trim(),
-                              phone: phoneController.text.trim(),
+                              fullName: nameCtrl.text.trim(),
+                              phone: phoneCtrl.text.trim(),
                             );
-                            setSheetState(() => isSaving = false);
+                            setSheet(() => isSaving = false);
                             if (result['success']) {
-                              final updatedUser = Map<String, dynamic>.from(
+                              final updated = Map<String, dynamic>.from(
                                 userController.user,
                               );
-                              updatedUser['full_name'] = nameController.text
-                                  .trim();
-                              updatedUser['phone'] = phoneController.text
-                                  .trim();
-                              userController.saveUser(updatedUser);
+                              updated['full_name'] = nameCtrl.text.trim();
+                              updated['phone'] = phoneCtrl.text.trim();
+                              userController.saveUser(updated);
                               Navigator.pop(context);
                               _loadProfile();
                               Get.snackbar(
@@ -351,9 +347,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    if (_isLoading)
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
 
     final String fullName =
         profileData['full_name']?.toString() ?? userController.fullName;
